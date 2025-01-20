@@ -1,4 +1,4 @@
-const { mkdir, readdir, unlink } = require('fs/promises');
+const { mkdir, readdir, unlink, access } = require('fs/promises');
 const { createReadStream, createWriteStream } = require('fs');
 const { join, parse } = require('node:path');
 
@@ -9,7 +9,14 @@ const bundleFile = join(distFolder, 'bundle.css');
 async function mergeStyles() {
   try {
     await mkdir(distFolder, { recursive: true });
-    await unlink(bundleFile);
+
+    try {
+      await access(bundleFile);
+      await unlink(bundleFile);
+      console.log('bundle.css updated');
+    } catch {
+      console.log('New bundle.css created');
+    }
 
     const items = await readdir(stylesFolder, { withFileTypes: true });
 
@@ -17,7 +24,7 @@ async function mergeStyles() {
       const itemExt = parse(item.name).ext.slice(1);
 
       if (item.isFile() && itemExt == 'css') {
-        const rs = createReadStream(join(`${item.path}`, `${item.name}`));
+        const rs = createReadStream(join(`${item.parentPath}`, `${item.name}`));
         const ws = createWriteStream(bundleFile, { flags: 'a' });
 
         rs.pipe(ws);
